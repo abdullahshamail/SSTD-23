@@ -2,11 +2,113 @@ from hydrogenbond import HydrogenBond
 import numpy as np
 import pandas as pd
 
+def hydrogenBondCheckGivenIndices2(start, end, indices, data, atomType):
+    atomsIHave = {
+                    "n": [],
+                    "hn": [],
+                    "o": []
+                }
+    for index in indices:
+        if not find_key_by_value(index, atomType) == None:
+            atomsIHave[find_key_by_value(index, atomType)].append(index)
+
+    # tempGap = 0
+    hb = False
+    arr = []
+    for timeFrame in range(start, end+1):
+        # print(timeFrame)
+        # print(timeFrame)
+        for hn in atomsIHave["hn"]:
+            for n in atomsIHave["n"]:
+                coord_hn = getCoordinates(data[timeFrame], hn)
+                coord_n = getCoordinates(data[timeFrame], n)
+                for o in atomsIHave["o"]:
+                    coord_o = getCoordinates(data[timeFrame], o)
+                    if HB_truth(coord_hn, coord_n, coord_o):
+                        hb = True
+                        break
+                if hb: break
+            if hb: break
+        arr.append(hb)
+        hb = False
+    return arr
+
+def consecutive_true_indices(bool_list):
+    true_indices = [i for i, x in enumerate(bool_list) if x]
+    consecutive_ranges = []
+    current_range = []
+    for i in range(len(true_indices)):
+        if not current_range:
+            current_range.append(true_indices[i])
+        elif true_indices[i] == current_range[-1] + 1:
+            current_range.append(true_indices[i])
+        else:
+            consecutive_ranges.append(current_range)
+            current_range = [true_indices[i]]
+    if current_range:
+        consecutive_ranges.append(current_range)
+    output_str = ''
+    for r in consecutive_ranges:
+        if len(r) == 1:
+            output_str += str(r[0]) + ', '
+        else:
+            output_str += str(r[0]) + '-' + str(r[-1]) + ', '
+    return output_str[:-2]
+
+def combine_ranges(ranges, t):
+    combined_ranges = []
+    start, end = ranges[0]
+    for i in range(1, len(ranges)):
+        next_start, next_end = ranges[i]
+        if next_start - end <= t:
+            end = next_end
+        else:
+            combined_ranges.append((start, end))
+            start, end = next_start, next_end
+    combined_ranges.append((start, end))
+    return combined_ranges
+
 def printConvoys(convoys):
     print("Total number of Convoys =", len(convoys))
     for convoy in convoys:
         print('No of elements in the Convoy', len(convoy.indices))  
         print(convoy.start_time, convoy.end_time, convoy.indices)
+
+
+def filterDF(df):
+    osDF = df[((df['atom_type'] == 'o') | (df['atom_type'] == 'os')) & (df['subst_id'] >= 5) & (df['subst_id'] <= 14)]
+    nDF = df[(df['atom_type'] == 'n') & (df['subst_id'] >= 1) & (df['subst_id'] <= 4)]
+    o_and_n = pd.concat([osDF, nDF])
+    # display(o_and_n)
+    o_and_n = o_and_n.reset_index()
+    o_and_n_indices = {}
+    for key, val in o_and_n.groupby('subst_id').indices.items():
+        o_and_n_indices[key] = o_and_n.loc[val]["index"].values
+
+    return o_and_n_indices
+
+
+def extractInterestingMoleculesPerTimeframe(data, nitrogens_and_oxygens_indices, threshold):
+    results = []  # list to store results
+    for i in range(1, 5):
+        # iterate over second set of subst_id groups
+        for j in range(5, 15):
+            # get atom indices for each subst_id group
+            # idx_i_1 = range(*subst_id_index_ranges[i])
+            # idx_j_1 = range(*subst_id_index_ranges[j])
+            # get coordinate arrays for each subst_id group
+            coords_i = data[nitrogens_and_oxygens_indices[i]]
+            coords_j = data[nitrogens_and_oxygens_indices[j]]
+            # compute distances between atoms in the two subst_id groups
+            dists = np.linalg.norm(coords_i[:, np.newaxis, :] - coords_j, axis=2)
+            # find indices of atoms that are within x units of each other
+            idx_i, idx_j = np.where(dists < threshold)
+            # append results to list
+            for ii, jj in zip(idx_i, idx_j):
+                results.append((i, j, ii ,jj))
+
+    # print results
+    return results
 
 def getAtomType(index):
     atomTypes = {
