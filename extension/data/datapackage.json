@@ -1,0 +1,24 @@
+{
+  "description": "Cycling, running and walking GPS traces.", 
+  "license": {
+    "url": "http://creativecommons.org/licenses/by-nc/2.0/", 
+    "type": "cc-nc", 
+    "title": "Creative Commons Non-Commercial (Any)"
+  }, 
+  "title": "human-powered-traces", 
+  "keywords": [
+    "cycling", 
+    "running", 
+    "walking"
+  ], 
+  "resources": [
+    {
+      "path": "https://www.dropbox.com/s/su7xo02dbjot8ch/activities.zip?dl=0", 
+      "title": "User1 Activities", 
+      "description": "GPX traces", 
+      "name": "user1-activities", 
+      "format": "GPX"
+    }
+  ], 
+  "name": "human-powered-traces"
+}
